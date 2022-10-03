@@ -21,33 +21,10 @@ mx= 0
 my= 0
 mw = 0
 mh = 0
-def getWindowsCoords():
-    coords = []
-    def winEnumHandler( hwnd, ctx ):
-        if win32gui.IsWindowVisible( hwnd ):
-            rect = win32gui.GetWindowRect(hwnd)
-            x = rect[0]
-            y = rect[1]
-            w = rect[2] - x
-            h = rect[3] - y
-            print (hex(hwnd), win32gui.GetWindowText( hwnd ))
 
-            if win32gui.GetWindowText(hwnd) == "Condition Zero":
-                print("found")
-                
-                coords.append(x)
-                coords.append(y)
-                coords.append(w)
-                coords.append(h)
-
-    win32gui.EnumWindows( winEnumHandler, coords)
-    return coords
-
-
-
-coords = getWindowsCoords() # get window coords
-print(coords)
-x,y,w,h = coords
+# coords = getWindowsCoords() # get window coords
+# print(coords)
+# x,y,w,h = coords
 sct = mss.mss()
 # pyautogui settings
 import pyautogui # https://totalcsgo.com/commands/mouse
@@ -59,21 +36,26 @@ offset = 30
 times = []
 sct = mss.mss()
 
-print(x,y,w,h)
+
 
 model = DetectMultiBackend('yolov5/runs/train/yolov5s_results8/weights/best.pt', device=torch.device('dml'), dnn=False, data='yolov5/dataset/data.yaml', fp16=False)
 while True:
     t1 = time.time()
-    print(x,y,w,h)
     img = np.array(sct.grab({"top": 30, "left": 0, "width": 640, "height": 480}))
     img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
     
     image= predict(source=img, model=model)
+    
+    t2 = time.time()
+    times.append(t2-t1)
+    times = times[-50:]
+    ms = sum(times)/len(times)*1000
+    fps = 1000 / ms
+    print("FPS", fps)
+    image = cv2.putText(image, "Time: {:.1f}FPS".format(fps), (0, 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
     cv2.imshow('test',np.array(image))
    
-    # image, detection_list, bboxes = detect_enemy(yolo, np.copy(img), input_size=YOLO_INPUT_SIZE, CLASSES=TRAIN_CLASSES, rectangle_colors=(255,0,0))
-    # cv2.circle(image,(int(w/2),int(h/2)), 3, (255,255,255), -1) # center of weapon sight
-    # cv2.imshow("OpenCV/Numpy normal", image)
+    
     # th_list, t_list = [], []
     # for detection in detection_list:
     #     diff_x = (int(w/2) - int(detection[1]))*-1
@@ -96,13 +78,7 @@ while True:
     #     if abs(t_list[index])<12:
     #         pyautogui.click()
 
-    # t2 = time.time()
-    # times.append(t2-t1)
-    # times = times[-50:]
-    # ms = sum(times)/len(times)*1000
-    # fps = 1000 / ms
-    # print("FPS", fps)
-    # image = cv2.putText(image, "Time: {:.1f}FPS".format(fps), (0, 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
+    
     
   
     # #if cv2.waitKey(25) & 0xFF == ord("q"):
