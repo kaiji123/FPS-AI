@@ -67,7 +67,7 @@ def loadImage(image,imgsz,stride,auto):
     return  img, img0
 @torch.no_grad()
 def predict(
-        weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
+        model=None,
         source=ROOT / 'data/images',  # file/dir/URL/glob, 0 for webcam
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         imgsz=(640, 640),  # inference size (height, width)
@@ -97,16 +97,16 @@ def predict(
    
     # Load model
     device = select_device(device)
-    model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
-    stride, names, pt = model.stride, model.names, model.pt
-    imgsz = check_img_size(imgsz, s=stride)  # check image size
 
-    im, img0 = loadImage(source, imgsz, stride=stride, auto=pt)
+    stride, names, pt = model.stride, model.names, model.pt
+    # imgsz = check_img_size(imgsz, s=stride)  # check image size
+
+    im, img0 = loadImage(source, imgsz=imgsz, stride=stride, auto=pt)
     bs = 1  # batch_size
     # vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
-    model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
+    # model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], [0.0, 0.0, 0.0]
 
     t1 = time_sync()
@@ -133,11 +133,7 @@ def predict(
     # Process predictions
     for i, det in enumerate(pred):  # per image
         seen += 1
-        
         im0= img0.copy()
-
-        gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-        imc = im0.copy() if save_crop else im0  # for save_crop
         annotator = Annotator(im0, line_width=line_thickness, example=str(names))
         if len(det):
             # Rescale boxes from img_size to im0 size
@@ -147,28 +143,14 @@ def predict(
             # Write results
             for *xyxy, conf, cls in reversed(det):
             
-
-                if view_img:  # Add bbox to image
-                    c = int(cls)  # integer class
-                    label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
-                    annotator.box_label(xyxy, label, color=colors(c, True))
+                c = int(cls)  # integer class
+                label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+                annotator.box_label(xyxy, label, color=colors(c, True))
     
 
         # Stream results
         im0 = annotator.result()
-        if view_img:
-            cv2.namedWindow("Display", cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
-            cv2.resizeWindow("Display", im0.shape[1], im0.shape[0])
-            cv2.imshow("Display", im0)
-            cv2.waitKey(1)  # 1 millisecond
-
-
-
-    # Print results
-    t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
-    LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
-    if update:
-        strip_optimizer(weights)  # update model (to fix SourceChangeWarning)
+        return im0
 
 
 

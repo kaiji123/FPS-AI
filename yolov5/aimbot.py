@@ -1,15 +1,10 @@
-#================================================================
-#
-#   File name   : YOLO_aimbot_main.py
-#   Author      : PyLessons
-#   Created date: 2020-10-06
-#   Website     : https://pylessons.com/
-#   GitHub      : https://github.com/pythonlessons/TensorFlow-2.x-YOLOv3
-#   Description : CSGO main yolo aimbot script
-#
-#================================================================
+#!/usr/bin/env python3.8
 import os
 from tkinter import W
+
+import torch
+
+from models.common import DetectMultiBackend
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import subprocess
@@ -60,21 +55,22 @@ pyautogui.MINIMUM_DURATION = 0
 pyautogui.MINIMUM_SLEEP = 0
 pyautogui.PAUSE = 0
 
-
 offset = 30
 times = []
 sct = mss.mss()
 
 print(x,y,w,h)
+
+model = DetectMultiBackend('yolov5/runs/train/yolov5s_results8/weights/best.pt', device=torch.device('dml'), dnn=False, data='yolov5/dataset/data.yaml', fp16=False)
 while True:
     t1 = time.time()
-    img = np.array(sct.grab({"top": y-30, "left": x, "width": w, "height": h, "mon": -1}))
+    print(x,y,w,h)
+    img = np.array(sct.grab({"top": 30, "left": 0, "width": 640, "height": 480}))
     img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
-    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    cwd = os.getcwd()
-    print("current working dir: ", cwd)
-
-    predict(weights='yolov5/runs/train/yolov5s_results8/weights/best.pt', source=img, view_img=True)
+    
+    image= predict(source=img, model=model)
+    cv2.imshow('test',np.array(image))
+   
     # image, detection_list, bboxes = detect_enemy(yolo, np.copy(img), input_size=YOLO_INPUT_SIZE, CLASSES=TRAIN_CLASSES, rectangle_colors=(255,0,0))
     # cv2.circle(image,(int(w/2),int(h/2)), 3, (255,255,255), -1) # center of weapon sight
     # cv2.imshow("OpenCV/Numpy normal", image)
@@ -112,3 +108,6 @@ while True:
     # #if cv2.waitKey(25) & 0xFF == ord("q"):
     #     #cv2.destroyAllWindows()
     #     #break
+
+    cv2.waitKey(1)
+cv2.destroyAllWindows()
