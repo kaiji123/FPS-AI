@@ -106,7 +106,7 @@ def predict(
     # vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
-    # model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
+    model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], [0.0, 0.0, 0.0]
 
     t1 = time_sync()
@@ -131,6 +131,7 @@ def predict(
     # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
 
     # Process predictions
+    boxes =[]
     for i, det in enumerate(pred):  # per image
         seen += 1
         im0= img0.copy()
@@ -146,11 +147,12 @@ def predict(
                 c = int(cls)  # integer class
                 label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
                 annotator.box_label(xyxy, label, color=colors(c, True))
+                boxes.append(xyxy)
     
 
         # Stream results
         im0 = annotator.result()
-        return im0
+        return im0, boxes
 
 
 

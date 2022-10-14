@@ -1,4 +1,5 @@
 #!/usr/bin/env python3.8
+import math
 import os
 from tkinter import W
 
@@ -36,15 +37,40 @@ offset = 30
 times = []
 sct = mss.mss()
 
+def getCenter(x1,y1,x2,y2):
+    return (x1 + x2)/ 2, (y1 + y2)/2
 
 
-model = DetectMultiBackend('yolov5/runs/train/yolov5s_results8/weights/best.pt', device=torch.device('dml'), dnn=False, data='yolov5/dataset/data.yaml', fp16=False)
+def chooseEDistance(boxes, cx,cy):
+    ret= 0
+    min =1000000
+    for index, box in enumerate(boxes):
+        x,y,xx,yy = box
+        bx,by = getCenter(x,y,xx,yy)
+        dist = math.sqrt((bx -cx)**2 + (by - cy)**2)
+        if dist < min :
+            min = dist
+            ret = index
+    return ret
+
+
+def calculateDistance(x1,y1,x2,y2):
+    return x2 - x1 , y2 - y1
+
+top = 30
+left = 0
+width =640
+height =480
+autoaim = True
+
+model = DetectMultiBackend('runs/train/yolov5s_results8/weights/best.pt', device=torch.device('cpu'), dnn=False, data='dataset/data.yaml', fp16=False)
 while True:
     t1 = time.time()
-    img = np.array(sct.grab({"top": 30, "left": 0, "width": 640, "height": 480}))
+    img = np.array(sct.grab({"top": top, "left": left, "width": width, "height": height}))
+    cx,cy = getCenter(left, top, left + width, top + height)
     img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
     
-    image= predict(source=img, model=model)
+    image, boxes= predict(source=img, model=model)
     
     t2 = time.time()
     times.append(t2-t1)
@@ -52,8 +78,19 @@ while True:
     ms = sum(times)/len(times)*1000
     fps = 1000 / ms
     print("FPS", fps)
-    image = cv2.putText(image, "Time: {:.1f}FPS".format(fps), (0, 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
-    cv2.imshow('test',np.array(image))
+    # image = cv2.putText(image, "Time: {:.1f}FPS".format(fps), (0, 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
+    cv2.imshow('test',image)
+    print(boxes)
+
+   
+    if autoaim == True:
+        if len(boxes) > 0:
+            index = chooseEDistance(boxes, cx, cy)
+            x1,y1,x2,y2 = boxes[index]
+            bx , by = getCenter(x1,y1,x2,y2)
+            x, y = calculateDistance(cx,cy,bx,by)
+            pyautogui.move(x,y)
+        
    
     
     # th_list, t_list = [], []
@@ -81,9 +118,9 @@ while True:
     
     
   
-    # #if cv2.waitKey(25) & 0xFF == ord("q"):
-    #     #cv2.destroyAllWindows()
-    #     #break
+    if cv2.waitKey(25) & 0xFF == ord("p"):
+        cv2.destroyAllWindows()
+        break
 
     cv2.waitKey(1)
 cv2.destroyAllWindows()
