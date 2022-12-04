@@ -61,7 +61,7 @@ top = 30
 left = 0
 width =640
 height =480
-autoaim = True
+autoaim = False
 
 model = DetectMultiBackend('runs/train/yolov5s_results8/weights/best.pt', device=torch.device('cpu'), dnn=False, data='dataset/data.yaml', fp16=False)
 while True:
